@@ -17,20 +17,34 @@
     			success: function(res){
     				var div = $('<div>')
                       .attr('class', 'list-group')
-                      .append($('<a>')
-                          .attr('class', 'list-group-item active')
-                          .append($('<h4>')
-                              .attr('class', 'list-group-item-heading'),
-                              $('<p>')
-                              .attr('class', 'list-group-item-text')));
-    				var infoObj = JSON.parse(res);
+                      .append(
+                        $('<a>')
+                          .attr('class', 'list-group-item')
+                        .append(
+                          $('<h4>')
+                            .attr('class', 'list-group-item-heading'),
+                          $('<p>')
+                            .attr('class', 'list-group-item-text editp'),
+                          $('<button>').text('Edit')
+                            .attr('type', 'button')
+                            .attr('class', 'label label-danger')
+                            ));
+
+  				  var infoObj = JSON.parse(res);
     				var info = '';
+            console.log(infoObj)
 
     				$.each(infoObj,function(index, value){
     					     info = $(div).clone();
-    					     $(info).find('h4').text(value.Title);
-    					     $(info).find('p').text(value.Description);
-    					     $('.jumbotron').append(wish);
+                   $(info).find('h4').text(value.title);
+    					     $(info).find('p').text(value.value);
+                   $(info).find('p').attr('id', value.title+'_p');
+                   $(info).find('button').attr('id', value.title+'button');
+                   $(info).find('button').click(function(){
+                     console.log('button clicked')
+                         $("#"+value.title+"_p").hide();
+                           });
+    					     $('.jumbotron').append(info);
     				});
     			},
     			error: function(error){

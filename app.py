@@ -1,6 +1,15 @@
+# `University` VARCHAR(45) NULL),
+# `Thesis_title` VARCHAR(450) NULL),
+# `Funding_source` VARCHAR(145) NULL),
+# `Start_date` VARCHAR(45) NULL),
+# `Expected_finish_date` VARCHAR(45) NULL),
+# `Supervisor` VARCHAR(45) NULL),
+# `Thesis_submission_date` VARCHAR(45) NULL),
+# `Student_mentor` VARCHAR(45) NULL)''')
+
 from flask import Flask, render_template, json, request, session, redirect
 from werkzeug import generate_password_hash, check_password_hash
-import sqlite3
+import sqlite3, collections
 
 app = Flask(__name__)
 app.secret_key = 'why would I tell you my secret key?'
@@ -9,6 +18,7 @@ cursor = conn.cursor()
 # cursor.execute('SELECT * FROM tbl_user')
 
 try:
+    print 'creating user table'
     cursor.execute('''CREATE TABLE tbl_user
              (`user_name` VARCHAR(45) NULL UNIQUE,
              `user_username` VARCHAR(45) NULL,
@@ -17,56 +27,47 @@ except Exception as e:
         print e
 
 try:
+    print 'creating info table'
     cursor.execute('''CREATE TABLE tbl_info
-             (`user_name` VARCHAR(45) NULL UNIQUE,
+             (`user_name` VARCHAR(45) UNIQUE NULL,
              `Email_address` VARCHAR(45) NULL,
-             `University` VARCHAR(45) NULL),
-             `Thesis_title` VARCHAR(450) NULL),
-             `Funding_source` VARCHAR(145) NULL),
-             `Start_date` VARCHAR(45) NULL),
-             `Expected_finish_date` VARCHAR(45) NULL),
-             `Supervisor` VARCHAR(45) NULL),
-             `Thesis_submission_date` VARCHAR(45) NULL),
+             `University` VARCHAR(45) NULL,
+             `Thesis_title` VARCHAR(450) NULL,
+             `Funding_source` VARCHAR(145) NULL,
+             `Start_date` VARCHAR(45) NULL,
+             `Expected_finish_date` VARCHAR(45) NULL,
+             `Supervisor` VARCHAR(45) NULL,
+             `Thesis_submission_date` VARCHAR(45) NULL,
              `Student_mentor` VARCHAR(45) NULL)''')
 except Exception as e:
         print e
 
 try:
+    print 'creating lectures table'
     cursor.execute('''CREATE TABLE tbl_lectures
-             (`user_name` VARCHAR(45) NULL UNIQUE,
+             (`user_name` VARCHAR(45) UNIQUE NULL,
              `Lecture_course` VARCHAR(45) NULL,
-             `Attendance` VARCHAR(45) NULL),
+             `Attendance` VARCHAR(45) NULL,
              `Record` VARCHAR(450) NULL)''')
 except Exception as e:
         print e
 
 try:
+    print 'creating skills table'
     cursor.execute('''CREATE TABLE tbl_skills
-             (`user_name` VARCHAR(45) NULL UNIQUE,
-             `Skill` VARCHAR(45) NULL''')
+             (`user_name` VARCHAR(45) UNIQUE NULL,
+             `Skill` VARCHAR(45) NULL)''')
 except Exception as e:
         print e
 
 try:
+    print 'creating assessments table'
     cursor.execute('''CREATE TABLE tbl_assessments
              (`user_name` VARCHAR(45) NULL UNIQUE,
              `Assessment` VARCHAR(45) NULL,
-             `Result` VARCHAR(45) NULL''')
+             `Result` VARCHAR(45) NULL)''')
 except Exception as e:
         print e
-# Name
-# Email address
-# University
-# Thesis title
-# Funding source
-# Start date and expected finish date
-# Supervisor
-# Thesis submission and viva dates
-# Lecture attendance and record
-# Transferable skills training record
-# Student mentor
-# Assessment results
-
 
 def sp_createUser(username, email, password):
     t = (username,)
@@ -86,32 +87,25 @@ def sp_validateLogin(username):
     cursor.execute('SELECT * FROM tbl_user WHERE user_username = ?', t)
     return cursor.fetchall()
 
-# `University` VARCHAR(45) NULL),
-# `Thesis_title` VARCHAR(450) NULL),
-# `Funding_source` VARCHAR(145) NULL),
-# `Start_date` VARCHAR(45) NULL),
-# `Expected_finish_date` VARCHAR(45) NULL),
-# `Supervisor` VARCHAR(45) NULL),
-# `Thesis_submission_date` VARCHAR(45) NULL),
-# `Student_mentor` VARCHAR(45) NULL)''')
-
 def sp_getStudentInfo(username):
     t = (username,)
-    cursor.execute('SELECT * FROM tbl_user WHERE user_username = ?', t)
+    cursor.execute('SELECT * FROM tbl_user WHERE user_name = ?', t)
     data = cursor.fetchone()
-    studentInfo = dict()
-    studentInfo['name'] = data[0]
-    studentInfo['email_adress'] = data[1]
-    cursor.execute('SELECT * FROM tbl_info WHERE user_username = ?', t)
+    studentInfo = list()
+    studentInfo.append({'title': 'Name', 'value': data[0]})
+    studentInfo.append({'title': 'Email Address', 'value': data[1]})
+    print 'studentInfo = ', studentInfo
+    cursor.execute('SELECT * FROM tbl_info WHERE user_name = ?', t)
     data = cursor.fetchone()
-    if not data == None:
-        studentInfo['University'] = data[2]
-        studentInfo['Thesis_title'] = data[3]
-        studentInfo['Funding_source'] = data[4]
-        studentInfo['Start_date'] = data[5]
-        studentInfo['Expected_finish_date'] = data[6]
-        studentInfo['Thesis_submission_date'] = data[7]
-        studentInfo['Student_mentor'] = data[8]
+    if data == None:
+        data = ('None','None','None','None','None','None','None','None','None')
+    studentInfo.append({'title': 'University', 'value': data[2]})
+    studentInfo.append({'title': 'Thesis Title', 'value': data[3]})
+    studentInfo.append({'title': 'Funding Source', 'value': data[4]})
+    studentInfo.append({'title': 'Start Date', 'value': data[5]})
+    studentInfo.append({'title': 'Finish Date (expected)', 'value': data[6]})
+    studentInfo.append({'title': 'Thesis submission date', 'value': data[7]})
+    studentInfo.append({'title': 'Student Mentor', 'value': data[8]})
     return studentInfo
 
 @app.route("/")
@@ -154,7 +148,7 @@ def validateLogin():
         _username = request.form['inputEmail']
         _password = request.form['inputPassword']
         data = sp_validateLogin(_username)
-        print data
+        # print data
         if len(data) > 0:
             if check_password_hash(str(data[0][2]),_password):
                 session['user'] = data[0][0]
@@ -174,7 +168,7 @@ def userHome():
     if session.get('user'):
         return render_template('userHome.html')
     else:
-        return render_template('error.html',error = 'Unauthorized Access')
+        return redirect('/login')
 
 @app.route('/logout')
 def logout():
@@ -186,12 +180,8 @@ def getStudentInfo():
     try:
         if session.get('user'):
             _user = session.get('user')
-
-            con = mysql.connect()
-            cursor = con.cursor()
-            info_dict = cursor.callproc('sp_getStudentInfo',(_user,))
-            wishes = cursor.fetchall()
-
+            print 'user = ', _user
+            info_dict = sp_getStudentInfo(_user)
             return json.dumps(info_dict)
         else:
             return render_template('error.html', error = 'Unauthorized Access')
