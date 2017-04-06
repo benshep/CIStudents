@@ -8,7 +8,11 @@
     <link href="http://getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css" rel="stylesheet">
     <link href="../static/css/signup.css" rel="stylesheet">
-    <script src="../static/js/jquery-3.2.0.min.js"></script>
+
+    <script src = "https://code.jquery.com/jquery-1.10.2.js"></script>
+    <script src = "https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+    <script src="../static/datepicker/js/bootstrap-datepicker.js"></script>
+    <link id="bsdp-css" href="../static/datepicker/css/bootstrap-datepicker.standalone.css" rel="stylesheet">
     <script>
     	$(function(){
     		$.ajax({
@@ -23,11 +27,9 @@
                         .append(
                           $('<h4>')
                             .attr('class', 'list-group-item-heading'),
-                          $('<p>')
-                            .attr('class', 'list-group-item-text editp'),
-                          $('<button>').text('Edit')
-                            .attr('type', 'button')
-                            .attr('class', 'label label-danger')
+                          $('<div>')
+                            .attr('class', 'list-group-item-text')
+                            .attr('contenteditable', 'true')
                             ));
 
   				  var infoObj = JSON.parse(res);
@@ -37,13 +39,11 @@
     				$.each(infoObj,function(index, value){
     					     info = $(div).clone();
                    $(info).find('h4').text(value.title);
-    					     $(info).find('p').text(value.value);
-                   $(info).find('p').attr('id', value.title+'_p');
-                   $(info).find('button').attr('id', value.title+'button');
-                   $(info).find('button').click(function(){
-                     console.log('button clicked')
-                         $("#"+value.title+"_p").hide();
-                           });
+    					     $(info).find('div').text(value.value);
+                   if(value.hasOwnProperty('id') && value.id == 'datepicker'){
+                     $(info).find('div').addClass(value.id);
+                     $(info).find('div').click(divClicked);
+                   }
     					     $('.jumbotron').append(info);
     				});
     			},
@@ -51,7 +51,31 @@
     				console.log(error);
     			}
     		});
-    	});
+        function editableTextBlurred() {
+            var html = $(this).val();
+            console.log(html)
+            var viewableText = $("<div>");
+            viewableText.html(html);
+            $(this).replaceWith(viewableText);
+            // setup the click event for this new div
+            //viewableText.click(divClicked);
+        }
+        function divClicked() {
+          var divHtml = $(this).text();
+          console.log(divHtml)
+          //var editableText = $("<div>");
+          var inputcontrol = $('<input type="text">')
+          inputcontrol.attr('value',divHtml)
+          inputcontrol.attr('contenteditable', 'true')
+          inputcontrol.attr('data-provide','datepicker')
+          //editableText.append(inputcontrol)
+          $(this).replaceWith(inputcontrol);
+          inputcontrol.focus();
+          // setup the blur event for this new textarea
+          //inputcontrol.blur(editableTextBlurred);
+          //$( ".datepicker" ).datepicker();
+        };
+      });
     </script>
 
 </head>

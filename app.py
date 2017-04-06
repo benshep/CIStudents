@@ -102,9 +102,9 @@ def sp_getStudentInfo(username):
     studentInfo.append({'title': 'University', 'value': data[2]})
     studentInfo.append({'title': 'Thesis Title', 'value': data[3]})
     studentInfo.append({'title': 'Funding Source', 'value': data[4]})
-    studentInfo.append({'title': 'Start Date', 'value': data[5]})
-    studentInfo.append({'title': 'Finish Date (expected)', 'value': data[6]})
-    studentInfo.append({'title': 'Thesis submission date', 'value': data[7]})
+    studentInfo.append({'title': 'Start Date', 'value': data[5], 'id': 'datepicker'})
+    studentInfo.append({'title': 'Finish Date (expected)', 'value': data[6], 'id': 'datepicker'})
+    studentInfo.append({'title': 'Thesis submission date', 'value': data[7], 'id': 'datepicker'})
     studentInfo.append({'title': 'Student Mentor', 'value': data[8]})
     return studentInfo
 
