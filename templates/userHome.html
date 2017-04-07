@@ -5,20 +5,23 @@
     <title>Python Flask Bucket List App</title>
 
 
-    <link href="http://getbootstrap.com/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script> 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+	
     <link href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css" rel="stylesheet">
     <link href="../static/css/signup.css" rel="stylesheet">
 
-    <script src = "https://code.jquery.com/jquery-1.10.2.js"></script>
-    <script src = "https://code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
-    <script src="../static/datepicker/js/bootstrap-datepicker.js"></script>
-    <link id="bsdp-css" href="../static/datepicker/css/bootstrap-datepicker.standalone.css" rel="stylesheet">
+	<link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap-editable/css/bootstrap-editable.css" rel="stylesheet"/>
+	<script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap-editable/js/bootstrap-editable.min.js"></script>
+
     <script>
     	$(function(){
     		$.ajax({
     			url : '/getStudentInfo',
     			type : 'GET',
     			success: function(res){
+					console.log(res);
     				var div = $('<div>')
                       .attr('class', 'list-group')
                       .append(
@@ -32,21 +35,30 @@
                             .attr('class', 'editable')
                             ));
 
-  				  var infoObj = JSON.parse(res);
+					var infoObj = JSON.parse(res);
     				var info = '';
-            console.log(infoObj)
+					console.log(infoObj)
 
+					$.fn.editable.defaults.mode = 'inline';
     				$.each(infoObj,function(index, value){
-    					     info = $(div).clone();
-                   $(info).find('h4').text(value.title);
-    					     $(info).find('div').text(value.value);
-                   if(value.hasOwnProperty('class') && value.class == 'datepicker'){
-                     $(info).find('div').addClass(value.class);
-                   }
-                   $(info).find('div').click(divClicked);
-    					     $('.jumbotron').append(info);
+						info = $(div).clone();
+						$(info).find('h4').text(value.title);
+						var isDate = value.hasOwnProperty('class') && value.class == 'datepicker';
+						var valDiv = $(info).find('div');
+						valDiv.text(value.value);
+						
+						valDiv.editable({
+							type: isDate ? 'date' : 'text',
+							pk: 1, //TODO: I don't know what this should be. It's the primary key associated with the student record.
+							url: '/post', //TODO: write a POST method!
+						});
+						// if(value.hasOwnProperty('class') && value.class == 'datepicker'){
+							// $(info).find('div').addClass(value.class);
+						// }
+						// $(info).find('div').click(divClicked);
+						$('.jumbotron').append(info);
     				});
-            $('.jumbotron').append('<div class="modal-footer"><button id="btnUpdate" type="button" class="btn btn-lg btn-danger">Update</button></div>')
+					$('.jumbotron').append('<div class="modal-footer"><button id="btnUpdate" type="button" class="btn btn-lg btn-danger">Update</button></div>')
     			},
     			error: function(error){
     				console.log(error);
@@ -80,7 +92,7 @@
           $(this).replaceWith(divContainer);
           inputcontrol.focus();
           // setup the blur event for this new textarea
-          //inputcontrol.blur(editableTextBlurred);
+          inputcontrol.blur(editableTextBlurred);
           //$( ".datepicker" ).datepicker();
         };
         $.fn.datepicker.defaults.format = "mm/dd/yyyy";
