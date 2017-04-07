@@ -29,7 +29,7 @@
                             .attr('class', 'list-group-item-heading'),
                           $('<div>')
                             .attr('class', 'list-group-item-text')
-                            .attr('contenteditable', 'true')
+                            .attr('class', 'editable')
                             ));
 
   				  var infoObj = JSON.parse(res);
@@ -40,12 +40,13 @@
     					     info = $(div).clone();
                    $(info).find('h4').text(value.title);
     					     $(info).find('div').text(value.value);
-                   if(value.hasOwnProperty('id') && value.id == 'datepicker'){
-                     $(info).find('div').addClass(value.id);
-                     $(info).find('div').click(divClicked);
+                   if(value.hasOwnProperty('class') && value.class == 'datepicker'){
+                     $(info).find('div').addClass(value.class);
                    }
+                   $(info).find('div').click(divClicked);
     					     $('.jumbotron').append(info);
     				});
+            $('.jumbotron').append('<div class="modal-footer"><button id="btnUpdate" type="button" class="btn btn-lg btn-danger">Update</button></div>')
     			},
     			error: function(error){
     				console.log(error);
@@ -62,19 +63,45 @@
         }
         function divClicked() {
           var divHtml = $(this).text();
-          console.log(divHtml)
-          //var editableText = $("<div>");
-          var inputcontrol = $('<input type="text">')
+          var divContainer = $('<div>')
+          divContainer.addClass('container text-center')
+          var div = $('<div>')
+          div.addClass('input-group text-center')
+          // var span = $('<span>')
+          // span.addClass('input-group-addon')
+          var inputcontrol = $('<input type="text" class="form-control">')
           inputcontrol.attr('value',divHtml)
-          inputcontrol.attr('contenteditable', 'true')
-          inputcontrol.attr('data-provide','datepicker')
-          //editableText.append(inputcontrol)
-          $(this).replaceWith(inputcontrol);
+          inputcontrol.addClass($(this).attr('class'))
+          if(inputcontrol.hasClass('datepicker')){
+            inputcontrol.attr('data-provide','datepicker')
+          }
+          div.append(inputcontrol)
+          divContainer.append(div)
+          $(this).replaceWith(divContainer);
           inputcontrol.focus();
           // setup the blur event for this new textarea
           //inputcontrol.blur(editableTextBlurred);
           //$( ".datepicker" ).datepicker();
         };
+        $.fn.datepicker.defaults.format = "mm/dd/yyyy";
+        $.fn.datepicker.defaults.autoclose = true
+        $('#btnUpdate').click(function() {
+            $.ajax({
+                url: '/updateInfo',
+                data: {
+                    title: $('#editTitle').val(),
+                    description: $('#editDescription').val(),
+                    id: localStorage.getItem('editId')
+                },
+                type: 'POST',
+                success: function(res) {
+                    $('<input>').editableTextBlurred()
+                },
+                error: function(error) {
+                    console.log(error);
+                }
+            })
+        });
       });
     </script>
 
@@ -95,6 +122,7 @@
 
         <div class="jumbotron">
         </div>
+
 
 
         <footer class="footer">
