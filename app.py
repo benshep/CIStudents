@@ -17,6 +17,23 @@ conn = sqlite3.connect('users.db')
 cursor = conn.cursor()
 # cursor.execute('SELECT * FROM tbl_user')
 
+Column = collections.namedtuple('Column', 'friendly_name length is_date is_unique')
+column.__new__.__defaults__ = (45, False, False)  # defaults for len, date, unique
+username_col = Column('user_name', is_unique=True)
+user_columns = {'user_name': username_col,
+                'user_username': Column('Name'),
+                'user_password': Column('Password')}
+info_columns = {'user_name': username_col,
+                'Email_address': Column(''),
+                'University': Column(''),
+                'Thesis_title': Column('', length=450),
+                'Funding_source': Column('', length=145),
+                'Start_date': Column(''),
+                'Expected_finish_date': Column(''),
+                'Supervisor': Column(''),
+                'Thesis_submission_date': Column(''),
+                'Student_mentor': Column('')}
+
 try:
     print 'creating user table'
     cursor.execute('''CREATE TABLE tbl_user
@@ -91,7 +108,9 @@ def sp_getStudentInfo(username):
     t = (username,)
     cursor.execute('SELECT * FROM tbl_user WHERE user_name = ?', t)
     data = cursor.fetchone()
+    print data
     studentInfo = list()
+    studentInfo.append({'title': 'user_name', 'value': t})
     studentInfo.append({'title': 'Name', 'value': data[0]})
     studentInfo.append({'title': 'Email Address', 'value': data[1]})
     print 'studentInfo = ', studentInfo
@@ -107,6 +126,15 @@ def sp_getStudentInfo(username):
     studentInfo.append({'title': 'Thesis submission date', 'value': data[7], 'class': 'datepicker'})
     studentInfo.append({'title': 'Student Mentor', 'value': data[8]})
     return studentInfo
+
+@app.route('/postStudentInfo', methods=['POST'])
+def sp_setStudentInfo():
+    print request.form
+    # which table to update?
+    col_name = request.form['name']
+    tbl_name = 'tbl_user' if col_name in ('Name', 'Email Address') else 'tbl_info'
+    cursor.execute('UPDATE {0} SET {name} = {value} WHERE user_name = {pk}'.format(tbl_name, **request.form))
+    return ''  # send back blank page with response code 200
 
 @app.route("/")
 def main():

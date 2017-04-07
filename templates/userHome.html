@@ -40,17 +40,22 @@
 					console.log(infoObj)
 
 					$.fn.editable.defaults.mode = 'inline';
-    				$.each(infoObj,function(index, value){
+					
+					// first item in infoObj should be user_name, which we don't want to show
+					console.assert(infoObj[0].name == 'user_name');
+					user_name = infoObj[0].value;
+    				$.each(infoObj.slice(1),function(index, value){
 						info = $(div).clone();
 						$(info).find('h4').text(value.title);
 						var isDate = value.hasOwnProperty('class') && value.class == 'datepicker';
 						var valDiv = $(info).find('div');
 						valDiv.text(value.value);
+						valDiv.attr('id', value.title);
 						
 						valDiv.editable({
 							type: isDate ? 'date' : 'text',
-							pk: 1, //TODO: I don't know what this should be. It's the primary key associated with the student record.
-							url: '/post', //TODO: write a POST method!
+							pk: user_name, //TODO: I don't know what this should be. It's the primary key associated with the student record.
+							url: '/postStudentInfo' //TODO: write a POST method!
 						});
 						// if(value.hasOwnProperty('class') && value.class == 'datepicker'){
 							// $(info).find('div').addClass(value.class);
