@@ -17,6 +17,24 @@ conn = sqlite3.connect('users.db')
 cursor = conn.cursor()
 # cursor.execute('SELECT * FROM tbl_user')
 
+Column = collections.namedtuple('Column', 'sql_name pos length is_date is_unique')
+Column.__new__.__defaults__ = ('', None, 45, False, False)  # defaults for pos, len, date, unique
+username_col = Column('user_name', 0, is_unique=True)
+user_columns = collections.OrderedDict([
+                ('Name', username_col),
+                ('Email Address', Column('user_username', 1)),
+                ('Password', Column('user_password'))])
+info_columns = collections.OrderedDict([
+                ('Name', username_col),
+                ('University', Column('University',1)),
+                ('Thesis Title', Column('Thesis_title', 2, length=450)),
+                ('Funding Source', Column('Funding_source', 3, length=145)),
+                ('Start Date', Column('Start_date', 4, is_date=True)),
+                ('Expected Finish Date', Column('Expected_finish_date', 5, is_date=True)),
+                ('Supervisor', Column('Supervisor', 6)),
+                ('Thesis Submission Date', Column('Thesis_submission_date', 7, is_date=True)),
+                ('Student Mentor', Column('Student_mentor', 8))])
+
 try:
     print 'creating user table'
     cursor.execute('''CREATE TABLE tbl_user
@@ -27,20 +45,24 @@ except Exception as e:
         print e
 
 try:
+    # cursor.execute('''DROP TABLE tbl_info''')
     print 'creating info table'
     cursor.execute('''CREATE TABLE tbl_info
              (`user_name` VARCHAR(45) UNIQUE NULL,
-             `Email_address` VARCHAR(45) NULL,
-             `University` VARCHAR(45) NULL,
-             `Thesis_title` VARCHAR(450) NULL,
-             `Funding_source` VARCHAR(145) NULL,
-             `Start_date` VARCHAR(45) NULL,
-             `Expected_finish_date` VARCHAR(45) NULL,
-             `Supervisor` VARCHAR(45) NULL,
-             `Thesis_submission_date` VARCHAR(45) NULL,
-             `Student_mentor` VARCHAR(45) NULL)''')
+             `University` VARCHAR(45) DEFAULT 'None',
+             `Thesis_title` VARCHAR(450)  DEFAULT 'None',
+             `Funding_source` VARCHAR(145)  DEFAULT 'None',
+             `Start_date` VARCHAR(45)  DEFAULT 'None',
+             `Expected_finish_date` VARCHAR(45)  DEFAULT 'None',
+             `Supervisor` VARCHAR(45)  DEFAULT 'None',
+             `Thesis_submission_date` VARCHAR(45)  DEFAULT 'None',
+             `Student_mentor` VARCHAR(45)  DEFAULT 'None')''')
 except Exception as e:
         print e
+
+cursor.execute('SELECT * FROM tbl_info')
+data = cursor.fetchall()
+print data
 
 try:
     print 'creating lectures table'
@@ -75,7 +97,7 @@ def sp_createUser(username, email, password):
     data = cursor.fetchone()
     if data is None:
         t = (username,email,password,)
-        print 't = ', t
+        # print 't = ', t
         cursor.execute('INSERT INTO tbl_user VALUES (?,?,?)', t)
         conn.commit()
         return True
@@ -91,22 +113,41 @@ def sp_getStudentInfo(username):
     t = (username,)
     cursor.execute('SELECT * FROM tbl_user WHERE user_name = ?', t)
     data = cursor.fetchone()
+    # print data
     studentInfo = list()
-    studentInfo.append({'title': 'Name', 'value': data[0]})
-    studentInfo.append({'title': 'Email Address', 'value': data[1]})
-    print 'studentInfo = ', studentInfo
+    for k, v in user_columns.iteritems():
+        if not v[1] == None:
+            si = {'title': k, 'value': data[v[1]]}
+            if v[3]:
+                si['class'] = 'datepicker'
+            studentInfo.append(si)
     cursor.execute('SELECT * FROM tbl_info WHERE user_name = ?', t)
     data = cursor.fetchone()
     if data == None:
         data = ('None','None','None','None','None','None','None','None','None')
-    studentInfo.append({'title': 'University', 'value': data[2]})
-    studentInfo.append({'title': 'Thesis Title', 'value': data[3]})
-    studentInfo.append({'title': 'Funding Source', 'value': data[4]})
-    studentInfo.append({'title': 'Start Date', 'value': data[5], 'class': 'datepicker'})
-    studentInfo.append({'title': 'Finish Date (expected)', 'value': data[6], 'class': 'datepicker'})
-    studentInfo.append({'title': 'Thesis submission date', 'value': data[7], 'class': 'datepicker'})
-    studentInfo.append({'title': 'Student Mentor', 'value': data[8]})
+    for k, v in info_columns.iteritems():
+        if not k == 'Name' and not v[1] == None:
+            si = {'title': k, 'value': data[v[1]]}
+            if v[3]:
+                si['class'] = 'datepicker'
+            studentInfo.append(si)
     return studentInfo
+
+@app.route('/postStudentInfo', methods=['POST'])
+def sp_setStudentInfo():
+    # which table to update?
+    col_name = request.form['name']
+    tbl_name = 'tbl_user' if col_name in ('Name', 'Email Address') else 'tbl_info'
+    if tbl_name == 'tbl_user':
+        sql_column = user_columns[request.form['name']][0]
+    else:
+        sql_column = info_columns[request.form['name']][0]
+    cursor.execute('INSERT OR IGNORE INTO '+tbl_name+' (user_name, '+sql_column+') VALUES(\''+request.form['pk']+'\', \''+request.form['value']+'\')')
+    cursor.execute('UPDATE '+tbl_name+' SET '+sql_column+' = \''+request.form['value']+'\' WHERE user_name = \''+request.form['pk']+'\'')
+    conn.commit()
+    cursor.execute('SELECT * FROM tbl_info')
+    data = cursor.fetchall()
+    return ''  # send back blank page with response code 200
 
 @app.route("/")
 def main():
@@ -148,7 +189,6 @@ def validateLogin():
         _username = request.form['inputEmail']
         _password = request.form['inputPassword']
         data = sp_validateLogin(_username)
-        # print data
         if len(data) > 0:
             if check_password_hash(str(data[0][2]),_password):
                 session['user'] = data[0][0]
@@ -180,7 +220,6 @@ def getStudentInfo():
     try:
         if session.get('user'):
             _user = session.get('user')
-            print 'user = ', _user
             info_dict = sp_getStudentInfo(_user)
             return json.dumps(info_dict)
         else:
