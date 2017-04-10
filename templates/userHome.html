@@ -2,19 +2,29 @@
 <html lang="en">
 
 <head>
-    <title>Python Flask Bucket List App</title>
 
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/css/bootstrap.min.css" rel="stylesheet">
-    <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script> 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
-	
     <link href="http://getbootstrap.com/examples/jumbotron-narrow/jumbotron-narrow.css" rel="stylesheet">
-    <link href="../static/css/signup.css" rel="stylesheet">
-
-	<link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap-editable/css/bootstrap-editable.css" rel="stylesheet"/>
-	<script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap-editable/js/bootstrap-editable.min.js"></script>
-
+    <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+    <link href="/static/css/signup.css" rel="stylesheet">
+    <link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap-editable/css/bootstrap-editable.css" rel="stylesheet"/>
+	  <script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/bootstrap-editable/js/bootstrap-editable.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.css" rel="stylesheet">
+  <style>
+    .jumbotron .btn {
+    padding: 1px 1px;
+    font-size: 14px;
+    }
+    .panel-body {
+    padding: 5px;
+    }
+    .editable-inline .add-on .icon-th {
+    margin-top: -1.5px;
+    margin-left: 1px;
+    }
+  </style>
     <script>
     	$(function(){
     		$.ajax({
@@ -23,34 +33,46 @@
     			success: function(res){
 					console.log(res);
     				var div = $('<div>')
-                      .attr('class', 'list-group')
+                      .attr('class', 'panel panel-primary')
                       .append(
-                        $('<a>')
-                          .attr('class', 'list-group-item')
+                        $('<div>')
+                        .attr('class', 'panel-heading')
                         .append(
                           $('<h4>')
-                            .attr('class', 'list-group-item-heading'),
-                          $('<div>')
-                            .attr('class', 'list-group-item-text')
-                            .attr('class', 'editable')
-                            ));
+                            .attr('class', 'panel-title')),
+                            $('<div>')
+                            .attr('class', 'panel-body')
+                            .append(
+                              $('<a>')
+                              .attr('class', '')
+                              .append(
+                                $('<div>')
+                                .attr('class', 'panel-primary panel-body')
+                              )
+                            )
+                          );
 
 					var infoObj = JSON.parse(res);
     				var info = '';
 					console.log(infoObj)
 
 					$.fn.editable.defaults.mode = 'inline';
+
+					// first item in infoObj should be user_name, which we don't want to show
+					console.assert(infoObj[0].name == 'user_name');
+					user_name = infoObj[0].value;
     				$.each(infoObj,function(index, value){
 						info = $(div).clone();
 						$(info).find('h4').text(value.title);
 						var isDate = value.hasOwnProperty('class') && value.class == 'datepicker';
-						var valDiv = $(info).find('div');
+						var valDiv = $(info).find('div:last');
 						valDiv.text(value.value);
-						
+						valDiv.attr('id', value.title);
+
 						valDiv.editable({
 							type: isDate ? 'date' : 'text',
-							pk: 1, //TODO: I don't know what this should be. It's the primary key associated with the student record.
-							url: '/post', //TODO: write a POST method!
+							pk: user_name, //TODO: I don't know what this should be. It's the primary key associated with the student record.
+							url: '/postStudentInfo' //TODO: write a POST method!
 						});
 						// if(value.hasOwnProperty('class') && value.class == 'datepicker'){
 							// $(info).find('div').addClass(value.class);
@@ -58,62 +80,13 @@
 						// $(info).find('div').click(divClicked);
 						$('.jumbotron').append(info);
     				});
-					$('.jumbotron').append('<div class="modal-footer"><button id="btnUpdate" type="button" class="btn btn-lg btn-danger">Update</button></div>')
     			},
     			error: function(error){
     				console.log(error);
     			}
     		});
-        function editableTextBlurred() {
-            var html = $(this).val();
-            console.log(html)
-            var viewableText = $("<div>");
-            viewableText.html(html);
-            $(this).replaceWith(viewableText);
-            // setup the click event for this new div
-            //viewableText.click(divClicked);
-        }
-        function divClicked() {
-          var divHtml = $(this).text();
-          var divContainer = $('<div>')
-          divContainer.addClass('container text-center')
-          var div = $('<div>')
-          div.addClass('input-group text-center')
-          // var span = $('<span>')
-          // span.addClass('input-group-addon')
-          var inputcontrol = $('<input type="text" class="form-control">')
-          inputcontrol.attr('value',divHtml)
-          inputcontrol.addClass($(this).attr('class'))
-          if(inputcontrol.hasClass('datepicker')){
-            inputcontrol.attr('data-provide','datepicker')
-          }
-          div.append(inputcontrol)
-          divContainer.append(div)
-          $(this).replaceWith(divContainer);
-          inputcontrol.focus();
-          // setup the blur event for this new textarea
-          inputcontrol.blur(editableTextBlurred);
-          //$( ".datepicker" ).datepicker();
-        };
         $.fn.datepicker.defaults.format = "mm/dd/yyyy";
         $.fn.datepicker.defaults.autoclose = true
-        $('#btnUpdate').click(function() {
-            $.ajax({
-                url: '/updateInfo',
-                data: {
-                    title: $('#editTitle').val(),
-                    description: $('#editDescription').val(),
-                    id: localStorage.getItem('editId')
-                },
-                type: 'POST',
-                success: function(res) {
-                    $('<input>').editableTextBlurred()
-                },
-                error: function(error) {
-                    console.log(error);
-                }
-            })
-        });
       });
     </script>
 
@@ -122,6 +95,7 @@
 <body>
 
     <div class="container">
+      <img src="https://www.cockcroft.ac.uk/wp-content/uploads/2014/09/CI_Logo_small.png" alt="logo">
         <div class="header">
             <nav>
                 <ul class="nav nav-pills pull-right">
@@ -129,7 +103,7 @@
                     </li>
                 </ul>
             </nav>
-            <h3 class="text-muted">Python Flask App</h3>
+            <h3 class="text-primary">Student Register</h3>
         </div>
 
         <div class="jumbotron">
@@ -138,7 +112,7 @@
 
 
         <footer class="footer">
-            <p>&copy; Company 2015</p>
+            <p>Cockcroft Instiute 2017</p>
         </footer>
 
     </div>
