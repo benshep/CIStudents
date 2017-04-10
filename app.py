@@ -17,8 +17,21 @@ conn = sqlite3.connect('users.db')
 cursor = conn.cursor()
 # cursor.execute('SELECT * FROM tbl_user')
 
-Column = collections.namedtuple('Column', 'sql_name pos length is_date is_unique')
-Column.__new__.__defaults__ = ('', None, 45, False, False)  # defaults for pos, len, date, unique
+class Column:
+    def __init__(self, sql_name, pos=None, length=45, is_date=False, is_unique=False, default_value=None):
+        [setattr(self, attr, val) for attr, val in locals().items() if attr != 'self']
+
+    def __str__(self):
+        return '`{sql_name}` VARCHAR({length}) NULL'.format(**self.__dict__) + \
+               (' UNIQUE' if self.is_unique else '') + \
+               ((" DEFAULT '" + self.default_value + "'") if self.default_value else '')
+
+    def __repr__(self):
+        return '<Column ' + self.sql_name + '>'
+
+# Column = collections.namedtuple('Column', 'sql_name pos length is_date is_unique')
+# Column.__new__.__defaults__ = ('', None, 45, False, False)  # defaults for pos, len, date, unique
+
 username_col = Column('user_name', 0, is_unique=True)
 user_columns = collections.OrderedDict([
                 ('Name', username_col),
@@ -26,37 +39,39 @@ user_columns = collections.OrderedDict([
                 ('Password', Column('user_password'))])
 info_columns = collections.OrderedDict([
                 ('Name', username_col),
-                ('University', Column('University',1)),
-                ('Thesis Title', Column('Thesis_title', 2, length=450)),
-                ('Funding Source', Column('Funding_source', 3, length=145)),
-                ('Start Date', Column('Start_date', 4, is_date=True)),
-                ('Expected Finish Date', Column('Expected_finish_date', 5, is_date=True)),
-                ('Supervisor', Column('Supervisor', 6)),
-                ('Thesis Submission Date', Column('Thesis_submission_date', 7, is_date=True)),
-                ('Student Mentor', Column('Student_mentor', 8))])
+                ('University', Column('University', 1, default_value='None')),
+                ('Thesis Title', Column('Thesis_title', 2, length=450, default_value='None')),
+                ('Funding Source', Column('Funding_source', 3, length=145, default_value='None')),
+                ('Start Date', Column('Start_date', 4, is_date=True, default_value='None')),
+                ('Expected Finish Date', Column('Expected_finish_date', 5, is_date=True, default_value='None')),
+                ('Supervisor', Column('Supervisor', 6, default_value='None')),
+                ('Thesis Submission Date', Column('Thesis_submission_date', 7, is_date=True, default_value='None')),
+                ('Student Mentor', Column('Student_mentor', 8, default_value='None'))])
+lecture_columns = collections.OrderedDict([
+                ('Name', username_col),
+                ('Lecture course', Column('Lecture_course', 1)),
+                ('Attendance', Column('Attendance', 2)),
+                ('Record', Column('Record', 3, length=450))])
+skills_columns = collections.OrderedDict([
+                ('Name', username_col),
+                ('Skill', Column('Skill', 1))])
+assessments_columns = collections.OrderedDict([
+                ('Name', username_col),
+                ('Assessment', Column('Assessment', 1)),
+                ('Result', Column('Result', 2))])
 
 try:
     print 'creating user table'
-    cursor.execute('''CREATE TABLE tbl_user
-             (`user_name` VARCHAR(45) NULL UNIQUE,
-             `user_username` VARCHAR(45) NULL,
-             `user_password` VARCHAR(45) NULL)''')
+    command = 'CREATE TABLE tbl_user (' + ', '.join([str(col) for col in user_columns.values()]) + ')'
+    cursor.execute(command)
 except Exception as e:
         print e
 
 try:
     # cursor.execute('''DROP TABLE tbl_info''')
     print 'creating info table'
-    cursor.execute('''CREATE TABLE tbl_info
-             (`user_name` VARCHAR(45) UNIQUE NULL,
-             `University` VARCHAR(45) DEFAULT 'None',
-             `Thesis_title` VARCHAR(450)  DEFAULT 'None',
-             `Funding_source` VARCHAR(145)  DEFAULT 'None',
-             `Start_date` VARCHAR(45)  DEFAULT 'None',
-             `Expected_finish_date` VARCHAR(45)  DEFAULT 'None',
-             `Supervisor` VARCHAR(45)  DEFAULT 'None',
-             `Thesis_submission_date` VARCHAR(45)  DEFAULT 'None',
-             `Student_mentor` VARCHAR(45)  DEFAULT 'None')''')
+    command = 'CREATE TABLE tbl_info (' + ', '.join([str(col) for col in info_columns.values()]) + ')'
+    cursor.execute(command)
 except Exception as e:
         print e
 
@@ -66,28 +81,22 @@ print data
 
 try:
     print 'creating lectures table'
-    cursor.execute('''CREATE TABLE tbl_lectures
-             (`user_name` VARCHAR(45) UNIQUE NULL,
-             `Lecture_course` VARCHAR(45) NULL,
-             `Attendance` VARCHAR(45) NULL,
-             `Record` VARCHAR(450) NULL)''')
+    command = 'CREATE TABLE tbl_lectures (' + ', '.join([str(col) for col in lecture_columns.values()]) + ')'
+    cursor.execute(command)
 except Exception as e:
         print e
 
 try:
     print 'creating skills table'
-    cursor.execute('''CREATE TABLE tbl_skills
-             (`user_name` VARCHAR(45) UNIQUE NULL,
-             `Skill` VARCHAR(45) NULL)''')
+    command = 'CREATE TABLE tbl_skills (' + ', '.join([str(col) for col in skills_columns.values()]) + ')'
+    cursor.execute(command)
 except Exception as e:
         print e
 
 try:
     print 'creating assessments table'
-    cursor.execute('''CREATE TABLE tbl_assessments
-             (`user_name` VARCHAR(45) NULL UNIQUE,
-             `Assessment` VARCHAR(45) NULL,
-             `Result` VARCHAR(45) NULL)''')
+    command = 'CREATE TABLE tbl_assessments (' + ', '.join([str(col) for col in assessments_columns.values()]) + ')'
+    cursor.execute(command)
 except Exception as e:
         print e
 
@@ -116,6 +125,7 @@ def sp_getStudentInfo(username):
     # print data
     studentInfo = list()
     for k, v in user_columns.iteritems():
+        print k, v
         if not v[1] == None:
             si = {'title': k, 'value': data[v[1]]}
             if v[3]:
